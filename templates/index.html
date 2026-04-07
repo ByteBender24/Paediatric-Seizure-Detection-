@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NeuroScan — Paediatric Seizure Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;
+  --bg2:#fafafa;
+  --bg3:#f4f4f5;
+  --panel:#ffffff;
+  --border:#e4e4e7;
+  --border-hover:#a1a1aa;
+  --t1:#09090b;
+  --t2:#52525b;
+  --t3:#a1a1aa;
+  --accent:#000000;
+  --accent-fg:#ffffff;
+  --mono:'Geist Mono',monospace;
+  --head:'Geist',sans-serif;
+  --radius:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--head);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:50;
+  padding:0 24px;height:56px;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:32px;height:32px;border-radius:6px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-text h1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--t1);line-height:1}
+.logo-text small{display:block;margin-top:2px;font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.badges{display:flex;gap:5px}
+.badge{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.02em;
+  padding:4px 10px;border:1px solid var(--border);border-radius:20px;
+  color:var(--t3);background:var(--bg2);transition:all .2s;
+}
+.badge .dot{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .2s}
+.badge.ok{border-color:#16a34a;color:#16a34a;background:#f0fdf4}
+.badge.ok .dot{background:#16a34a;animation:blink 1.4s ease-in-out infinite}
+.badge.err{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.badge.err .dot{background:#dc2626}
+.nav-link{
+  font-family:var(--mono);font-size:11px;letter-spacing:.02em;color:var(--t2);
+  padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);
+  text-decoration:none;transition:all .15s;background:var(--bg);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.nav-link:hover{border-color:var(--t1);color:var(--t1);background:var(--bg2)}
+
+/* ── THREE-TRACK GRID ── */
+.tracks{
+  max-width:1700px;margin:0 auto;padding:24px 24px 80px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:start;
+}
+
+/* ── TRACK ── */
+.track{display:flex;flex-direction:column;gap:12px}
+
+/* ── TRACK HEADER ── */
+.track-hdr{
+  padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:12px;background:var(--bg2);
+}
+.track-num{
+  width:30px;height:30px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;background:var(--accent);color:var(--accent-fg);
+}
+.track-info h2{font-size:14px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px;color:var(--t1)}
+.track-info p{font-family:var(--mono);font-size:10px;color:var(--t2);line-height:1.6}
+.track-info p code{color:var(--t1);background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:9px}
+
+/* ── PANEL ── */
+.panel{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;transition:border-color .15s;
+}
+.panel:hover{border-color:var(--border-hover)}
+.ph{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;background:var(--bg2);
+}
+.ph .tag{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;border:1px solid var(--border);
+  color:var(--t2);background:var(--bg3);
+}
+.ph h3{font-size:12px;font-weight:500;color:var(--t1)}
+.pb{padding:14px}
+
+/* ── MODEL STATUS ── */
+.ms-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px}
+.ms-box:last-child{margin-bottom:0}
+.ms-row{display:flex;align-items:center;justify-content:space-between}
+.ms-name{font-family:var(--mono);font-size:10px;color:var(--t2);letter-spacing:.02em}
+.ms-badge{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;
+  padding:2px 8px;border-radius:20px;transition:all .2s;
+}
+.ms-badge.ok{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+.ms-badge.err{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.ms-badge.wait{background:var(--bg3);color:var(--t3);border:1px solid var(--border)}
+.ms-sub{font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:3px}
+
+/* ── DROP ZONE ── */
+.dropzone{
+  border:1px dashed var(--border-hover);border-radius:var(--radius);padding:20px 14px;
+  text-align:center;cursor:pointer;background:var(--bg2);
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.dropzone:hover,.dropzone.over{border-color:var(--t1);border-style:dashed;background:var(--bg3)}
+.dropzone.over{box-shadow:inset 0 0 0 1px var(--t1)}
+.dz-icon{
+  width:36px;height:36px;margin:0 auto 8px;border-radius:var(--radius);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);transition:all .2s;
+}
+.dropzone:hover .dz-icon,.dropzone.over .dz-icon{border-color:var(--t1);background:var(--bg)}
+.dropzone h4{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--t1)}
+.dropzone p{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.6}
+.dz-fn{
+  display:none;margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--t1);
+  background:var(--bg3);border:1px solid var(--border);padding:3px 8px;border-radius:4px;
+  display:none;
+}
+
+/* ── BUTTONS ── */
+.btn{
+  width:100%;padding:10px;border:none;border-radius:var(--radius);cursor:pointer;
+  font-family:var(--head);font-size:13px;font-weight:500;letter-spacing:-.01em;
+  color:var(--accent-fg);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .15s;border:1px solid transparent;
+}
+.btn:hover:not(:disabled){background:#1a1a1a;transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn:disabled{background:var(--bg3);color:var(--t3);cursor:not-allowed;border-color:var(--border)}
+.spin{
+  width:12px;height:12px;border:1.5px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;display:none;flex-shrink:0;
+}
+.btn.loading .spin{display:block}
+.btn.loading .bi{display:none}
+.btn:disabled .spin{border-color:var(--border);border-top-color:var(--t3)}
+
+/* ── RESULTS AREA ── */
+.track-results{display:flex;flex-direction:column;gap:12px}
+.empty-track{
+  background:var(--bg2);border:1px dashed var(--border);border-radius:var(--radius);
+  padding:32px 18px;text-align:center;
+}
+.empty-track p{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.7}
+
+/* ── RESULT CARD ── */
+.rcard{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;animation:fadein .3s ease both;
+}
+.rch{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;background:var(--bg2);
+}
+.rch-l{display:flex;align-items:center;gap:7px}
+.rch h3{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--t1)}
+.rch-r{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.rcb{padding:14px}
+.plot{width:100%;border-radius:6px;border:1px solid var(--border);display:block}
+
+/* ── METRICS GRID ── */
+.met-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.met-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 12px;transition:border-color .15s;
+}
+.met-box:hover{border-color:var(--border-hover)}
+.met-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.met-val{font-size:18px;font-weight:700;line-height:1;color:var(--t1);letter-spacing:-.02em}
+.met-val.c,.met-val.g,.met-val.a,.met-val.p,.met-val.r,.met-val.w{color:var(--t1)}
+.met-sub{font-family:var(--mono);font-size:8px;color:var(--t3);margin-top:3px}
+
+/* ── CM COUNTS ── */
+.cm-counts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.cm-c{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:9px 10px;text-align:center;
+}
+.cm-v{font-size:18px;font-weight:700;line-height:1;margin-bottom:2px;color:var(--t1)}
+.cm-k{font-family:var(--mono);font-size:8px;color:var(--t3)}
+
+/* ── CLASSIFICATION REPORT ── */
+.cr-wrap{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px;overflow-x:auto;
+}
+.cr-wrap pre{font-family:var(--mono);font-size:9px;color:var(--t2);line-height:1.7;white-space:pre}
+
+/* ── ELECTRODES ── */
+.elec-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.elec-row{
+  display:flex;align-items:center;gap:9px;padding:8px 11px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);transition:border-color .15s;
+}
+.elec-row:hover{border-color:var(--border-hover)}
+.erank{
+  width:22px;height:22px;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border);color:var(--t2);
+}
+.r1{background:var(--t1);color:var(--accent-fg);border-color:var(--t1)}
+.r2{background:var(--bg3);color:var(--t2);border-color:var(--border-hover)}
+.r3{background:var(--bg3);color:var(--t2);border-color:var(--border)}
+.r4,.r5{background:var(--bg2);color:var(--t3);border-color:var(--border)}
+.einfo{flex:1;min-width:0}
+.ename{font-size:12px;font-weight:500;margin-bottom:3px;color:var(--t1)}
+.ebar-w{height:2px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.ebar{height:100%;border-radius:2px;background:var(--t1);transition:width 1s cubic-bezier(.34,1.56,.64,1)}
+.escore{font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap;flex-shrink:0}
+
+/* ── CHIPS ── */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.chip{
+  font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:20px;
+  border:1px solid var(--border);color:var(--t2);background:var(--bg2);
+  display:flex;align-items:center;gap:3px;
+}
+.chip.r{border-color:#fecaca;color:#dc2626;background:#fef2f2}
+.chip.g{border-color:#bbf7d0;color:#16a34a;background:#f0fdf4}
+.chip.a{border-color:#fed7aa;color:#ea580c;background:#fff7ed}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:18px;right:18px;z-index:100;
+  padding:10px 14px;border-radius:var(--radius);
+  font-family:var(--mono);font-size:10px;max-width:320px;line-height:1.5;
+  transform:translateY(8px) scale(.97);opacity:0;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
+  box-shadow:var(--shadow-md);
+}
+.toast.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+.toast.suc{background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a}
+.toast.show{transform:translateY(0) scale(1);opacity:1;pointer-events:auto}
+
+/* ── NOTE BOX ── */
+.note{
+  font-family:var(--mono);font-size:10px;color:var(--t2);line-height:1.7;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 12px;
+}
+.note code{color:var(--t1);background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border)}
+
+@media(max-width:1300px){.tracks{grid-template-columns:1fr 1fr}}
+@media(max-width:860px){.tracks{grid-template-columns:1fr;padding:16px}}
+@media(max-width:600px){header{padding:0 16px}.badges{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8">
+        <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6.1V20h8v-4.9C17.8 13.7 19 11.5 19 9c0-4-3-7-7-7z"/>
+        <path d="M9 15v2M15 15v2M7 9.5C8 8 10 7.5 12 8s4 1.5 4.5 3"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>NeuroScan</h1>
+      <small>EEG Seizure Detection</small>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="badges">
+      <div class="badge" id="bdg-gru"><div class="dot"></div>CNN-GRU</div>
+      <div class="badge" id="bdg-gnn"><div class="dot"></div>GNN</div>
+      <div class="badge" id="bdg-cbam"><div class="dot"></div>V3-CBAM</div>
+      <div class="badge" id="bdg-gts"><div class="dot"></div>GNN-TestSet</div>
+    </div>
+    <a href="/gallery" class="nav-link">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Gallery
+    </a>
+  </div>
+</header>
+
+<div class="tracks">
+
+  <!-- ═══ TRACK 1: CNN-GRU + EDF ═══════════════════════════════════════════ -->
+  <div class="track">
+    <div class="track-hdr">
+      <div class="track-num">1</div>
+      <div class="track-info">
+        <h2>CNN-GRU-Attn</h2>
+        <p>Upload an EDF file.<br>Outputs: EDA overview, seizure probability timeline, EEG waveform snapshot of detected seizure window.</p>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="panel">
+      <div class="ph"><span class="tag">STATUS</span><h3>Model</h3></div>
+      <div class="pb">
+        <div class="ms-box">
+          <div class="ms-row">
+            <span class="ms-name">CNN-GRU-Attn</span>
+            <span class="ms-badge wait" id="gru-badge">CHECKING…</span>
+          </div>
+          <div class="ms-sub">models/gru_model.pth</div>
+        </div>
+        <div class="note" style="margin-top:8px">
+          Place weight file at <code>models/gru_model.pth</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDF input -->
+    <div class="panel">
+      <div class="ph"><span class="tag">INPUT</span><h3>EDF File</h3></div>
+      <div class="pb">
+        <div class="dropzone" id="dz1"
+             ondrop="onDrop(event,'edf')" ondragover="onDragover(event,'dz1')" ondragleave="onDragleave('dz1')"
+             onclick="document.getElementById('edf-in').click()">
+          <div class="dz-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h4 id="dz1-title">Drop EDF File</h4>
+          <p>CHB-MIT .edf · drag & drop or click</p>
+          <div class="dz-fn" id="dz1-fn"></div>
+        </div>
+        <input type="file" id="edf-in" accept=".edf" style="display:none" onchange="setFile('edf',event)">
+      </div>
+    </div>
+
+    <button class="btn" id="btn1" onclick="runTrack1()" disabled>
+      <div class="spin"></div>
+      <svg class="bi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span id="btn1-txt">Analyze EDF</span>
+    </button>
+
+    <div class="track-results" id="res1">
+      <div class="empty-track"><p>Drop an EDF file and click Analyze EDF</p></div>
+    </div>
+  </div>
+
+  <!-- ═══ TRACK 2: GNN Topology ════════════════════════════════════════════ -->
+  <div class="track">
+    <div class="track-hdr">
+      <div class="track-num">2</div>
+      <div class="track-info">
+        <h2>Spatial Analysis</h2>
+        <p>File Upload for spatial analysis.<br>Outputs: functional connectivity graph, brain topomap, top 5 electrode chart.</p>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="panel">
+      <div class="ph"><span class="tag">STATUS</span><h3>Model + Test Set</h3></div>
+      <div class="pb">
+        <div class="ms-box">
+          <div class="ms-row">
+            <span class="ms-name">Topology Map</span>
+            <span class="ms-badge wait" id="gnn-badge">CHECKING…</span>
+          </div>
+          <div class="ms-sub">models/best_model.pth</div>
+        </div>
+        <div class="ms-box">
+          <div class="ms-row">
+            <span class="ms-name">File Upload</span>
+            <span class="ms-badge wait" id="gts-badge">CHECKING…</span>
+          </div>
+          <div class="ms-sub">Upload EDF file for spatial analysis</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn2" onclick="runTrack2()" disabled>
+      <div class="spin"></div>
+      <svg class="bi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span id="btn2-txt">Run Topology</span>
+    </button>
+
+    <div class="track-results" id="res2">
+      <div class="empty-track"><p>Click "Run Topology" to analyze the sample</p></div>
+    </div>
+  </div>
+
+  <!-- ═══ TRACK 3: V3_CBAM + Patient CSV ════════════════════════════════════ -->
+  <div class="track">
+    <div class="track-hdr">
+      <div class="track-num">3</div>
+      <div class="track-info">
+        <h2>EEG_Conformer Evaluation</h2>
+        <p>Upload a patient CSV from <code>patient_data/</code>.<br>Outputs: confusion matrix (counts + normalised) + classification report.</p>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="panel">
+      <div class="ph"><span class="tag">STATUS</span><h3>Model</h3></div>
+      <div class="pb">
+        <div class="ms-box">
+          <div class="ms-row">
+            <span class="ms-name">EEG Conformer (best model)</span>
+            <span class="ms-badge wait" id="cbam-badge">CHECKING…</span>
+          </div>
+          <div class="ms-sub">models/eeg_conformer_model.pt  ·  best_model.pt checkpoint</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV input -->
+    <div class="panel">
+      <div class="ph"><span class="tag">INPUT</span><h3>Patient CSV</h3></div>
+      <div class="pb">
+        <div class="dropzone" id="dz3"
+             ondrop="onDrop(event,'csv')" ondragover="onDragover(event,'dz3')" ondragleave="onDragleave('dz3')"
+             onclick="document.getElementById('csv-in').click()">
+          <div class="dz-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>
+            </svg>
+          </div>
+          <h4 id="dz3-title">Drop CSV File</h4>
+          <p>from patient_data/ folder</p>
+          <div class="dz-fn" id="dz3-fn"></div>
+        </div>
+        <input type="file" id="csv-in" accept=".csv" style="display:none" onchange="setFile('csv',event)">
+      </div>
+    </div>
+
+    <button class="btn" id="btn3" onclick="runTrack3()" disabled>
+      <div class="spin"></div>
+      <svg class="bi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span id="btn3-txt">Evaluate</span>
+    </button>
+
+    <div class="track-results" id="res3">
+      <div class="empty-track"><p>Drop a patient CSV and click "Evaluate"</p></div>
+    </div>
+  </div>
+
+</div><!-- /tracks -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const S = {edf:null, csv:null, busy:{t1:false,t2:false,t3:false}};
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg,type='err'){
+  const el=document.getElementById('toast');
+  el.className=`toast ${type}`;el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),4500);
+}
+
+// ── Status polling ─────────────────────────────────────────────────────────
+async function pollStatus(){
+  try{
+    const d=await(await fetch('/api/status')).json();
+    setBadge('gru', d.gru,  'bdg-gru',  'gru-badge');
+    setBadge('gnn', d.gnn,  'bdg-gnn',  'gnn-badge');
+    setBadge('cbam',d.cbam, 'bdg-cbam', 'cbam-badge');
+    setBadge('gts', d.gnn_testset, 'bdg-gts', 'gts-badge');
+    checkReady();
+  }catch(e){}
+}
+function setBadge(key,ok,hdrId,boxId){
+  const h=document.getElementById(hdrId);
+  const b=document.getElementById(boxId);
+  if(h){h.className=`badge ${ok?'ok':'err'}`}
+  if(b){b.className=`ms-badge ${ok?'ok':'err'}`;b.textContent=ok?'✓ LOADED':'✗ NOT FOUND'}
+}
+function checkReady(){
+  fetch('/api/status').then(r=>r.json()).then(d=>{
+    window._st=d;
+    document.getElementById('btn1').disabled=!(S.edf&&d.gru);
+    document.getElementById('btn2').disabled=!(d.gnn&&d.gnn_testset);
+    document.getElementById('btn3').disabled=!(S.csv&&d.cbam);
+  }).catch(()=>{});
+}
+
+// ── File handlers ──────────────────────────────────────────────────────────
+function onDragover(e,dzId){e.preventDefault();document.getElementById(dzId).classList.add('over')}
+function onDragleave(dzId){document.getElementById(dzId).classList.remove('over')}
+function onDrop(e,type){
+  e.preventDefault();
+  const dzId=type==='edf'?'dz1':'dz3';
+  document.getElementById(dzId).classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(!f)return;
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(type==='edf'&&ext==='edf') applyFile('edf',f);
+  else if(type==='csv'&&ext==='csv') applyFile('csv',f);
+  else toast(`Expected .${type} file`);
+}
+function setFile(type,e){const f=e.target.files[0];if(f)applyFile(type,f)}
+function applyFile(type,f){
+  S[type]=f;
+  if(type==='edf'){
+    const fn=document.getElementById('dz1-fn');
+    fn.textContent=f.name;fn.style.display='inline-block';
+    document.getElementById('dz1-title').textContent='File Ready ✓';
+  } else {
+    const fn=document.getElementById('dz3-fn');
+    fn.textContent=f.name;fn.style.display='inline-block';
+    document.getElementById('dz3-title').textContent='File Ready ✓';
+  }
+  checkReady();
+}
+
+// ── TRACK 1: EDF + CNN-GRU ────────────────────────────────────────────────
+async function runTrack1(){
+  if(S.busy.t1||!S.edf)return;
+  S.busy.t1=true; setBusy('btn1','btn1-txt','Analyzing…');
+  clearRes('res1');
+  const fd=new FormData(); fd.append('edf',S.edf);
+  try{
+    const d=await(await fetch('/api/analyze_edf',{method:'POST',body:fd})).json();
+    if(!d.success){toast(d.error);emptyRes('res1','Error: '+d.error);return}
+    const el=document.getElementById('res1');
+    const hasSz=d.seizure_windows&&d.seizure_windows.length>0;
+    let chips=`<div class="chips">
+      <div class="chip ${hasSz?'r':'g'}">${hasSz?`⚡ ${d.seizure_windows.length} seizure window${d.seizure_windows.length>1?'s':''}`:'✓ No seizures'}</div>
+      <div class="chip">${d.n_windows} windows</div>
+      <div class="chip">${d.duration_sec}s</div>
+      ${d.stats&&d.stats.max_prob?`<div class="chip a">peak ${Math.round(d.stats.max_prob*100)}%</div>`:''}
+    </div>`;
+    if(d.plots.eda)     el.appendChild(rcard('EDA','Signal Overview','EDA · Signal + PSD',chips+`<img class="plot" src="data:image/png;base64,${d.plots.eda}">`));
+    if(d.plots.timeline) el.appendChild(rcard('TIMELINE','Seizure Probability Timeline','CNN-GRU-Attn · 80% threshold',`<img class="plot" src="data:image/png;base64,${d.plots.timeline}">`));
+    if(d.plots.eeg_snapshot){
+      const lbl=hasSz?`Seizure window @ ${d.first_seizure_sec}s`:'Window 0';
+      el.appendChild(rcard('EEG','EEG Waveform Snapshot',lbl,`<img class="plot" src="data:image/png;base64,${d.plots.eeg_snapshot}">`));
+    }
+    toast('EDF analysis complete','suc');
+  }catch(e){toast(e.message);emptyRes('res1','Request failed: '+e.message)}
+  finally{S.busy.t1=false;clearBusy('btn1','btn1-txt','Analyze EDF')}
+}
+
+// ── TRACK 2: GNN Topology ─────────────────────────────────────────────────
+async function runTrack2(){
+  if(S.busy.t2)return;
+  S.busy.t2=true; setBusy('btn2','btn2-txt','Running…');
+  clearRes('res2');
+  try{
+    const d=await(await fetch('/api/gnn_topology')).json();
+    if(!d.success){toast(d.error);emptyRes('res2','Error: '+d.error);return}
+    const el=document.getElementById('res2');
+    if(d.plots.spatial_topo) el.appendChild(rcard('GNN','Connectivity + Topomap','First seizure sample from test set',`<img class="plot" src="data:image/png;base64,${d.plots.spatial_topo}">`));
+    if(d.top_electrodes&&d.top_electrodes.length){
+      const maxSc=Math.max(...d.top_electrodes.map(e=>e.score));
+      const rk=['r1','r2','r3','r4','r5'];
+      let body=`<div class="elec-list">${d.top_electrodes.map((e,i)=>`
+        <div class="elec-row">
+          <div class="erank ${rk[i]}">#${e.rank}</div>
+          <div class="einfo">
+            <div class="ename">${e.electrode}</div>
+            <div class="ebar-w"><div class="ebar" style="width:${(e.score/maxSc*100).toFixed(1)}%"></div></div>
+          </div>
+          <div class="escore">${e.score.toFixed(4)}</div>
+        </div>`).join('')}</div>`;
+      if(d.plots.top_electrodes) body+=`<img class="plot" src="data:image/png;base64,${d.plots.top_electrodes}" style="margin-top:12px">`;
+      el.appendChild(rcard('ELEC','Top Electrodes',`Sample index: ${d.sample_index}`,body));
+    }
+    toast('GNN topology complete','suc');
+  }catch(e){toast(e.message);emptyRes('res2','Request failed: '+e.message)}
+  finally{S.busy.t2=false;clearBusy('btn2','btn2-txt','Run Topology')}
+}
+
+// ── TRACK 3: V3_CBAM CSV ──────────────────────────────────────────────────
+async function runTrack3(){
+  if(S.busy.t3||!S.csv)return;
+  S.busy.t3=true; setBusy('btn3','btn3-txt','Evaluating…');
+  clearRes('res3');
+  const fd=new FormData(); fd.append('csv',S.csv);
+  try{
+    const d=await(await fetch('/api/cbam_evaluate',{method:'POST',body:fd})).json();
+    if(!d.success){toast(d.error);emptyRes('res3','Error: '+d.error);return}
+    const el=document.getElementById('res3');
+    const m=d.metrics;
+    let metBody=`
+      <div class="met-grid">
+        <div class="met-box"><div class="met-lbl">Accuracy</div><div class="met-val c">${(m.accuracy*100).toFixed(2)}%</div><div class="met-sub">(TP+TN)/Total</div></div>
+        <div class="met-box"><div class="met-lbl">Sensitivity</div><div class="met-val g">${(m.sensitivity*100).toFixed(2)}%</div><div class="met-sub">TP/(TP+FN)</div></div>
+        <div class="met-box"><div class="met-lbl">Specificity</div><div class="met-val a">${(m.specificity*100).toFixed(2)}%</div><div class="met-sub">TN/(TN+FP)</div></div>
+        <div class="met-box"><div class="met-lbl">Precision</div><div class="met-val p">${(m.precision*100).toFixed(2)}%</div><div class="met-sub">TP/(TP+FP)</div></div>
+        <div class="met-box"><div class="met-lbl">F1 — Seizure</div><div class="met-val r">${m.f1_seizure.toFixed(4)}</div><div class="met-sub">Binary F1 class 1</div></div>
+        <div class="met-box"><div class="met-lbl">F1 — Weighted</div><div class="met-val w">${m.f1_weighted.toFixed(4)}</div><div class="met-sub">Weighted avg F1</div></div>
+        <div class="met-box"><div class="met-lbl">Balanced Acc</div><div class="met-val a">${(m.balanced_acc*100).toFixed(2)}%</div><div class="met-sub">(Sens+Spec)/2</div></div>
+        <div class="met-box"><div class="met-lbl">False Alarm Rate</div><div class="met-val r">${(m.far*100).toFixed(2)}%</div><div class="met-sub">FP/(FP+TN)</div></div>
+      </div>
+      <div class="cm-counts">
+        <div class="cm-c"><div class="cm-v">${m.tp}</div><div class="cm-k">TP</div></div>
+        <div class="cm-c"><div class="cm-v">${m.tn}</div><div class="cm-k">TN</div></div>
+        <div class="cm-c"><div class="cm-v">${m.fp}</div><div class="cm-k">FP</div></div>
+        <div class="cm-c"><div class="cm-v">${m.fn}</div><div class="cm-k">FN</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:10px">
+        Total: ${m.total} samples · Normal: ${m.normal_count} · Seizure: ${m.seizure_count}
+      </div>`;
+    el.appendChild(rcard('METRICS','Evaluation Metrics','V3_CBAM · Patient CSV',metBody));
+    if(d.plots.cm) el.appendChild(rcard('CM','Confusion Matrix','Counts + Normalised',`<img class="plot" src="data:image/png;base64,${d.plots.cm}">`));
+    if(d.classification_report){
+      el.appendChild(rcard('REPORT','Classification Report','sklearn · digits=4',`<div class="cr-wrap"><pre>${d.classification_report}</pre></div>`));
+    }
+    toast('V3_CBAM evaluation complete','suc');
+  }catch(e){toast(e.message);emptyRes('res3','Request failed: '+e.message)}
+  finally{S.busy.t3=false;clearBusy('btn3','btn3-txt','Evaluate V3_CBAM')}
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function rcard(tag,title,sub,body){
+  const d=document.createElement('div');
+  d.className='rcard';
+  d.innerHTML=`
+    <div class="rch">
+      <div class="rch-l"><span class="tag" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--t2);background:var(--bg3)">${tag}</span><h3>${title}</h3></div>
+      <div class="rch-r">${sub}</div>
+    </div>
+    <div class="rcb">${body}</div>`;
+  return d;
+}
+function setBusy(btnId,txtId,msg){
+  const b=document.getElementById(btnId);
+  b.classList.add('loading');b.disabled=true;
+  document.getElementById(txtId).textContent=msg;
+}
+function clearBusy(btnId,txtId,msg){
+  const b=document.getElementById(btnId);
+  b.classList.remove('loading');b.disabled=false;
+  document.getElementById(txtId).textContent=msg;
+  checkReady();
+}
+function clearRes(id){document.getElementById(id).innerHTML=''}
+function emptyRes(id,msg){
+  document.getElementById(id).innerHTML=`<div class="empty-track"><p>${msg}</p></div>`;
+}
+
+pollStatus();
+setInterval(pollStatus,8000);
+</script>
+</body>
+</html>
