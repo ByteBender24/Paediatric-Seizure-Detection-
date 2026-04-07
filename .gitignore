@@ -89,3 +89,13 @@ htmlcov/
 *.bak
 *.tmp
 *.temp
+
+# Large ML files
+*.edf
+*.pt
+*.pth
+*.npy
+
+data/
+models/
+test_set_gnn/
